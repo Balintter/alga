@@ -1,0 +1,104 @@
+#Query on tree II
+#dfsel és binary lift segitsegevel szamolja a DIST es KTH ertekeket a graf nodejai közt
+
+
+import sys
+import math
+sys.setrecursionlimit(20000)
+
+def solve():
+    input = sys.stdin.read
+    data = input().split()
+    idx = 0
+
+    t = int(data[idx]); idx += 1
+    out = []
+
+    for _ in range(t):
+        if idx < len(data) and data[idx] == '':
+            idx += 1
+
+        N = int(data[idx]); idx += 1
+        LOGN = math.ceil(math.log2(N)) + 1
+
+        graph = [[] for _ in range(N+1)]
+        for _ in range(N-1):
+            u = int(data[idx]); idx += 1
+            v = int(data[idx]); idx += 1
+            w = int(data[idx]); idx += 1
+            graph[u].append((v,w))
+            graph[v].append((u,w))
+
+
+
+        parent = [[-1]*LOGN for _ in range(N+1)]
+        depth = [0]*(N+1)
+        dist = [0]*(N+1)
+
+        def dfs(u, p):
+            for v,w in graph[u]:
+                if v != p:
+                    parent[v][0] = u
+                    depth[v] = depth[u]+1
+                    dist[v] = dist[u]+w
+                    dfs(v,u)
+
+        dfs(1,-1)
+
+        for k in range(1, LOGN):
+            for v in range(1, N+1):
+                if parent[v][k-1] != -1:
+                    parent[v][k] = parent[parent[v][k-1]][k-1]
+
+        def lca(u,v):
+            if depth[u] < depth[v]:
+                u,v = v,u
+            for k in reversed(range(LOGN)):
+                if parent[u][k] != -1 and depth[parent[u][k]] >= depth[v]:
+                    u = parent[u][k]
+            if u == v:
+                return u
+            for k in reversed(range(LOGN)):
+                if parent[u][k] != -1 and parent[u][k] != parent[v][k]:
+                    u = parent[u][k]
+                    v = parent[v][k]
+            return parent[u][0]
+
+
+        def kth(u,v,k):
+            anc = lca(u,v)
+            du = depth[u]-depth[anc]+1
+            if k <= du:
+                k -= 1
+                for i in reversed(range(LOGN)):
+                    if k >= (1<<i):
+                        u = parent[u][i]
+                        k -= (1<<i)
+                return u
+            k = k - du
+            path_len = depth[v]-depth[anc]
+            k = path_len - k
+            for i in reversed(range(LOGN)):
+                if k >= (1<<i):
+                    v = parent[v][i]
+                    k -= (1<<i)
+            return v
+
+        while idx < len(data):
+            cmd = data[idx]; idx += 1
+            if cmd == 'DONE':
+                break
+            a = int(data[idx]); idx += 1
+            b = int(data[idx]); idx += 1
+            if cmd == 'DIST':
+                anc = lca(a,b)
+                out.append(str(dist[a]+dist[b]-2*dist[anc]))
+            elif cmd == 'KTH':
+                k = int(data[idx]); idx += 1
+                out.append(str(kth(a,b,k)))
+        out.append('')
+
+    sys.stdout.write('\n'.join(out))
+
+if __name__ == "__main__":
+    solve()
